@@ -1,4 +1,4 @@
-FROM maven:3.9.16-eclipse-temurin-21-alpine as BUILDER
+FROM maven:3.9.16-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
 COPY .mvn/ .mvn/
@@ -12,11 +12,11 @@ COPY src ./src
 
 RUN ./mvnw clean package -DskipTests
 
-FROM eclipse-temurin:21-jre as RUUNER
+FROM eclipse-temurin:21-jre AS runner
 
 WORKDIR /app
 
-COPY --from=BUILDER /app/target/*.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8000
 
