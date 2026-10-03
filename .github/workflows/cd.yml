@@ -6,31 +6,58 @@ on:
       - CareerHub CI
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "GHCR image tag to deploy"
+        required: true
+        type: string
 
 jobs:
   deploy:
     if: >
-      ${{ github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main' }}
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.workflow_run.head_sha }}
+
+      - name: Set image tag
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull immutable image
+
+      - name: Pull deployment image
         run: |
-          docker pull ghcr.io/chriscorr27/careerhub-backend:${{ github.event.workflow_run.head_sha }}
-      - name: Verify image
+          docker pull ghcr.io/chriscorr27/careerhub-backend:${{ steps.image.outputs.tag }}
+
+      - name: Verify deployment image
         run: |
           docker image inspect \
-            ghcr.io/chriscorr27/careerhub-backend:${{ github.event.workflow_run.head_sha }}
+            ghcr.io/chriscorr27/careerhub-backend:${{ steps.image.outputs.tag }}
+
+      - name: Deployment information
+        run: |
+          echo "Ready to deploy:"
+          echo "ghcr.io/chriscorr27/careerhub-backend:${{ steps.image.outputs.tag }}"
