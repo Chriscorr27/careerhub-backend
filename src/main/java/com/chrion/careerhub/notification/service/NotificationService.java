@@ -5,6 +5,7 @@ import com.chrion.careerhub.common.exception.CustomException;
 import com.chrion.careerhub.constant.EventVersions;
 import com.chrion.careerhub.event.model.EmailNotificationEvent;
 import com.chrion.careerhub.event.producer.EventProducer;
+import com.chrion.careerhub.monitor.service.MetricsService;
 import com.chrion.careerhub.notification.model.Notification;
 import com.chrion.careerhub.notification.model.NotificationPreference;
 import com.chrion.careerhub.notification.model.NotificationType;
@@ -30,6 +31,7 @@ public class NotificationService {
     private final AuthService authService;
     private final EventProducer eventProducer;
     private final NotificationPreferenceService notificationPreferenceService;
+    private final MetricsService metricsService;
 
 
     @Async("careerHubTaskExecutor")
@@ -48,6 +50,7 @@ public class NotificationService {
         if(notificationPreference.isInAppEnabled()){
             log.info("Saving job created notification for user {} and job {}", userId, jobId);
             notificationRepository.save(notification);
+            metricsService.notificationSent();
         }
 
         if(notificationPreference.isEmailEnabled()){

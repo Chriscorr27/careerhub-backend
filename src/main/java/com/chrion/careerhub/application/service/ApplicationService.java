@@ -5,10 +5,10 @@ import com.chrion.careerhub.application.dto.ApplicationSearchRequest;
 import com.chrion.careerhub.application.dto.CreateApplicationRequest;
 import com.chrion.careerhub.application.model.Application;
 import com.chrion.careerhub.application.model.ApplicationStatus;
-import com.chrion.careerhub.application.repository.ApplicationRepository;
 import com.chrion.careerhub.auth.service.AuthService;
 import com.chrion.careerhub.common.dto.PageResponse;
 import com.chrion.careerhub.common.exception.CustomException;
+import com.chrion.careerhub.monitor.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -23,13 +23,15 @@ import java.util.UUID;
 public class ApplicationService {
     private final AuthService authService;
     private final ApplicationDBService applicationDBService;
-    private final ApplicationRepository applicationRepository;
+    private final MetricsService metricsService;
 
 
     public ApplicationResponse createApplication(CreateApplicationRequest request) {
         log.info("Creating Application");
         UUID userId = authService.getCurrentAuthenticatedUserId();
-        return applicationDBService.createApplication(userId, request);
+        ApplicationResponse applicationResponse = applicationDBService.createApplication(userId, request);
+        metricsService.applicationCreated();
+        return applicationResponse;
     }
 
     public PageResponse<ApplicationResponse> searchApplications(ApplicationSearchRequest request, Pageable pageable){
@@ -58,8 +60,9 @@ public class ApplicationService {
         if(newStatus!=ApplicationStatus.APPLIED && newStatus!=ApplicationStatus.WITHDRAWN){
             throw  new CustomException("Invalid Status", HttpStatus.BAD_REQUEST);
         }
-
-        return applicationDBService.changeApplicationStatusByUserId(userId, application, newStatus);
+        ApplicationResponse applicationResponse = applicationDBService.changeApplicationStatusByUserId(userId, application, newStatus);
+        metricsService.applicationStatusChanged();
+        return applicationResponse;
     }
 
     public ApplicationResponse changeApplicationStatusByHR(UUID applicationId, ApplicationStatus newStatus){
@@ -70,6 +73,8 @@ public class ApplicationService {
             throw  new CustomException("Invalid Status", HttpStatus.BAD_REQUEST);
         }
 
-        return applicationDBService.changeApplicationStatusByUserId(userId, application, newStatus);
+        ApplicationResponse applicationResponse = applicationDBService.changeApplicationStatusByUserId(userId, application, newStatus);
+        metricsService.applicationStatusChanged();
+        return applicationResponse;
     }
 }

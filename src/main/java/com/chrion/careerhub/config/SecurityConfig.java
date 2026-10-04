@@ -42,9 +42,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/register-aws").authenticated()
                         .requestMatchers(
-                                "/api/v1/auth/*",
-                                "/actuator/health"
+                                "/api/v1/auth/*"
                         ).permitAll()
+                        .requestMatchers("/actuator/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
