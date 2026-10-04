@@ -7,6 +7,7 @@ import com.chrion.careerhub.job.dto.*;
 import com.chrion.careerhub.job.model.*;
 
 
+import com.chrion.careerhub.monitor.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,12 +26,16 @@ public class JobService {
 
     private final JobDBService jobDBService;
 
+    private final MetricsService metricsService;
+
 
 
     public JobResponse createJob(CreateJobRequest request) {
         log.info("Creating job");
         UUID userId = authService.getCurrentAuthenticatedUserId();
-        return jobDBService.createJobByUserId(userId, request);
+        JobResponse jobResponse = jobDBService.createJobByUserId(userId, request);
+        metricsService.jobCreated();
+        return jobResponse;
     }
 
     @Transactional(readOnly = true)
